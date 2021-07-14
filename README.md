@@ -1,3 +1,39 @@
+# Barely Operational 2021-07-13
+Made minimum changes to get working with latest possible ODrive version. Plan to make compatible with Python3.
+
+To install:
+```
+pip install monotonic
+pip install IPython==5.0 --user
+git clone --depth 1 --branch fw-v0.4.11 https://github.com/madcowswe/ODrive
+cd ODrive/tools
+python setup.py sdist
+pip install dist/odrive-*.tar.gz
+```
+
+Docker:
+```
+docker run -it --privileged -v /dev/bus/usb:/dev/bus/usb --network ros --env "ROS_MASTER_URI=http://ros-master:11311" --env "ROS_HOSTNAME=odrive" nadarobots/melodic-ros-nada:latest
+```
+
+Docker-Compose:
+```
+odrive:
+    image: nadarobots/melodic-ros-nada:latest
+    privileged: true
+    depends_on:
+      - ros-master
+    environment:
+      - "ROS_MASTER_URI=http://ros-master:11311"
+      - "ROS_HOSTNAME=odrive"
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    command: stdbuf -o L roslaunch odrive_ros odrive.launch
+    networks:
+      - ros
+    restart: always
+```
+
 # ARCHIVE NOTICE 2021-02-04
 I have taken on a new position no longer have access to an ODrive for testing. Happy to add a maintainer role if anyone wants to step up to it, otherwise this repo will just stay up here as a reference for other implementations. 
 

@@ -69,7 +69,7 @@ class ODriveNode(object):
     encoder_counts_per_rev = None
     m_s_to_value = 1.0
     axis_for_right = 0
-    encoder_cpr = 4096
+    encoder_cpr = 90
     
     # Startup parameters
     connect_on_startup = False
@@ -84,7 +84,7 @@ class ODriveNode(object):
     def __init__(self):
         self.sim_mode             = get_param('simulation_mode', False)
         self.publish_joint_angles = get_param('publish_joint_angles', True) # if self.sim_mode else False
-        self.publish_temperatures = get_param('publish_temperatures', True)
+        #self.publish_temperatures = get_param('publish_temperatures', True)
         
         self.axis_for_right = float(get_param('~axis_for_right', 0)) # if right calibrates first, this should be 0, else 1
         self.wheel_track = float(get_param('~wheel_track', 0.285)) # m, distance between wheel centres
@@ -132,9 +132,9 @@ class ODriveNode(object):
             self.diagnostic_updater.setHardwareID("Not connected, unknown")
             self.diagnostic_updater.add("ODrive Diagnostics", self.pub_diagnostics)
         
-        if self.publish_temperatures:
-            self.temperature_publisher_left  = rospy.Publisher('left/temperature', Float64, queue_size=2)
-            self.temperature_publisher_right = rospy.Publisher('right/temperature', Float64, queue_size=2)
+        #if self.publish_temperatures:
+        #    self.temperature_publisher_left  = rospy.Publisher('left/temperature', Float64, queue_size=2)
+        #    self.temperature_publisher_right = rospy.Publisher('right/temperature', Float64, queue_size=2)
         
         self.i2t_error_latch = False
         if self.publish_current:
@@ -284,8 +284,8 @@ class ODriveNode(object):
         self.new_pos_r = 0
         self.current_l = 0
         self.current_r = 0
-        self.temp_v_l = 0.
-        self.temp_v_r = 0.
+        #self.temp_v_l = 0.
+        #self.temp_v_r = 0.
         self.motor_state_l = "not connected" # undefined
         self.motor_state_r = "not connected"
         self.bus_voltage = 0.
@@ -315,8 +315,8 @@ class ODriveNode(object):
                     self.new_pos_r = -self.driver.right_pos()      # sign!
                     
                     # for temperatures
-                    self.temp_v_l = self.driver.left_temperature()
-                    self.temp_v_r = self.driver.right_temperature()
+                    #self.temp_v_l = self.driver.left_temperature()
+                    #self.temp_v_r = self.driver.right_temperature()
                     # for current
                     self.current_l = self.driver.left_current()
                     self.current_r = self.driver.right_current()
@@ -337,8 +337,8 @@ class ODriveNode(object):
         # as required by SLAM
         if self.publish_odom:
             self.pub_odometry(time_now)
-        if self.publish_temperatures:
-            self.pub_temperatures()
+        #if self.publish_temperatures:
+        #    self.pub_temperatures()
         if self.publish_current:
             self.pub_current()
         if self.publish_joint_angles:
@@ -371,7 +371,8 @@ class ODriveNode(object):
         if self.fast_timer_comms_active and not self.command_queue.empty():
             # check to see if we're initialised and engaged motor
             try:
-                if not self.driver.has_prerolled(): #ensure_prerolled():
+                if self.has_preroll and not self.driver.has_prerolled(): #ensure_prerolled():
+                #if not self.driver.has_prerolled(): #ensure_prerolled():
                     rospy.logwarn_throttle(5.0, "ODrive has not been prerolled, ignoring drive command.")
                     motor_command = self.command_queue.get_nowait()
                     return
@@ -438,8 +439,8 @@ class ODriveNode(object):
         self.m_s_to_value = self.driver.encoder_cpr/self.tyre_circumference
         
         if self.publish_odom:
-            self.old_pos_l = self.driver.left_axis.encoder.pos_cpr
-            self.old_pos_r = self.driver.right_axis.encoder.pos_cpr
+            self.old_pos_l = self.driver.left_axis.encoder.pos_cpr_counts
+            self.old_pos_r = self.driver.right_axis.encoder.pos_cpr_counts
         
         self.fast_timer_comms_active = True
         
@@ -565,10 +566,10 @@ class ODriveNode(object):
         stat.add("Status", self.status)
         stat.add("Motor state L", self.motor_state_l) 
         stat.add("Motor state R", self.motor_state_r)
-        stat.add("FET temp L (C)", round(self.temp_v_l,1))
-        stat.add("FET temp R (C)", round(self.temp_v_r,1))
-        stat.add("Motor temp L (C)", "unimplemented")
-        stat.add("Motor temp R (C)", "unimplemented")
+        #stat.add("FET temp L (C)", round(self.temp_v_l,1))
+        #stat.add("FET temp R (C)", round(self.temp_v_r,1))
+        #stat.add("Motor temp L (C)", "unimplemented")
+        #stat.add("Motor temp R (C)", "unimplemented")
         stat.add("Motor current L (A)", round(self.current_l,1))
         stat.add("Motor current R (A)", round(self.current_r,1))
         stat.add("Voltage (V)", round(self.bus_voltage,2))
@@ -594,7 +595,7 @@ class ODriveNode(object):
                 stat.summary(diagnostic_msgs.msg.DiagnosticStatus.OK, "Running")
         
         
-    def pub_temperatures(self):
+    #def pub_temperatures(self):
         # https://discourse.odriverobotics.com/t/odrive-mosfet-temperature-rise-measurements-using-the-onboard-thermistor/972
         # https://discourse.odriverobotics.com/t/thermistors-on-the-odrive/813/7
         # https://www.digikey.com/product-detail/en/murata-electronics-north-america/NCP15XH103F03RC/490-4801-1-ND/1644682
@@ -611,8 +612,8 @@ class ODriveNode(object):
         
         #print(temperature_l, temperature_r)
         
-        self.temperature_publisher_left.publish(self.temp_v_l)
-        self.temperature_publisher_right.publish(self.temp_v_r)
+        #self.temperature_publisher_left.publish(self.temp_v_l)
+        #self.temperature_publisher_right.publish(self.temp_v_r)
         
     # Current publishing and i2t calculation
     i2t_current_nominal = 2.0
